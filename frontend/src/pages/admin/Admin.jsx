@@ -28,11 +28,13 @@ export default function Admin() {
 
 function Users() {
   const [list, setList] = useState([]);
+  const [meId, setMeId] = useState(null);
   const [err, setErr] = useState("");
 
   async function load() {
     try {
       setList(await api("/admin/users"));
+      if (meId === null) setMeId((await api("/auth/me")).id);
       setErr("");
     } catch (e) {
       setErr(e.message);
@@ -64,7 +66,7 @@ function Users() {
               </div>
             </div>
             {u.is_active ? (
-              u.role !== "ADMIN" && (
+              u.id !== meId && (
                 <button className="btn small stop" onClick={() => disable(u)}>
                   Disable
                 </button>
@@ -99,6 +101,11 @@ function AddUser() {
     if (!/^\d{10,15}$/.test(form.phone.trim())) return setErr("Phone must be 10-15 digits.");
     if (form.pin.length < 4) return setErr("PIN must be at least 4 digits.");
     if (form.role === "RESIDENT" && !form.flat_no) return setErr("Choose the resident's flat.");
+    if (
+      form.role === "ADMIN" &&
+      !window.confirm("Add this person as an ADMIN? Admins can add and disable everyone.")
+    )
+      return;
     setBusy(true);
     try {
       const body = {
@@ -110,7 +117,7 @@ function AddUser() {
       };
       const u = await api("/admin/users", { method: "POST", body });
       setMsg(`Added ${u.name}. Tell them their PIN in person.`);
-      setForm({ ...form, name: "", phone: "", pin: "" });
+      setForm({ name: "", phone: "", pin: "", role: "RESIDENT", flat_no: "" });
     } catch (e2) {
       setErr(e2.message);
     } finally {
