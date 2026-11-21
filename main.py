@@ -1,14 +1,15 @@
 from datetime import datetime, timedelta
 from typing import List, Optional
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import FastAPI, Depends, HTTPException, BackgroundTasks, Response
 from sqlalchemy.orm import Session
 
 from database import Base, engine, get_db
 from models import Flat, User, VisitRequest, VisitStatus, Role
 from schemas import (
-    LoginIn, TokenOut, UserCreate, UserOut,
+    LoginIn, TokenOut, UserCreate, UserOut, FcmTokenIn,
     VisitCreate, DecisionIn, VisitOut,
 )
+from push import notify_residents_of_request, notify_watchman_of_decision
 from security import (
     hash_pin, verify_pin, create_token,
     is_locked, record_failure, clear_failures,
@@ -38,7 +39,7 @@ _origins = [
 app.add_middleware(
     CORSMiddleware,
     allow_origins=_origins,
-    allow_methods=["GET", "POST", "PATCH"],
+    allow_methods=["GET", "POST", "PATCH", "DELETE"],
     allow_headers=["Authorization", "Content-Type"],
 )
 
@@ -76,6 +77,33 @@ def login(body: LoginIn, db: Session = Depends(get_db)):
 @app.get("/auth/me", response_model=UserOut)
 def me(user: User = Depends(current_user)):
     return user
+
+
+@app.post("/me/fcm-token", status_code=204)
+def save_fcm_token(
+    body: FcmTokenIn,
+    db: Session = Depends(get_db),
+    user: User = Depends(current_user),
+):
+    """The app sends its push address here after the user allows notifications."""
+    # One phone belongs to one account at a time (watchman and resident may share a phone in tests).
+    db.query(User).filter(User.fcm_token == body.token, User.id != user.id).update(
+        {User.fcm_token: None}
+    )
+    user.fcm_token = body.token
+    db.commit()
+    return Response(status_code=204)
+
+
+@app.delete("/me/fcm-token", status_code=204)
+def clear_fcm_token(
+    db: Session = Depends(get_db),
+    user: User = Depends(current_user),
+):
+    """Called on log out so a logged-out phone stops getting alerts."""
+    user.fcm_token = None
+    db.commit()
+    return Response(status_code=204)
 
 
 # ----------------------------------------------------------------- admin
@@ -150,6 +178,7 @@ def disable_user(
 @app.post("/visits", response_model=VisitOut, status_code=201)
 def create_visit(
     body: VisitCreate,
+    background: BackgroundTasks,
     db: Session = Depends(get_db),
     watchman: User = Depends(require_role(Role.WATCHMAN)),
 ):
@@ -167,7 +196,7 @@ def create_visit(
     db.add(visit)
     db.commit()
     db.refresh(visit)
-    # TODO: send FCM push to the flat's residents here
+    background.add_task(notify_residents_of_request, visit.id)  # push to the flat's residents
     return visit
 
 
@@ -247,6 +276,7 @@ def get_visit(
 def decide(
     visit_id: int,
     body: DecisionIn,
+    background: BackgroundTasks,
     db: Session = Depends(get_db),
     resident: User = Depends(require_role(Role.RESIDENT)),
 ):
@@ -270,6 +300,7 @@ def decide(
         db.refresh(visit)
         raise HTTPException(400, f"Already {visit.status.value}")
     db.refresh(visit)
+    background.add_task(notify_watchman_of_decision, visit.id)  # push to the watchman
     return visit
 
 

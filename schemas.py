@@ -11,6 +11,10 @@ class LoginIn(BaseModel):
     pin: str = Field(min_length=4, max_length=20)
 
 
+class FcmTokenIn(BaseModel):
+    token: str = Field(min_length=20, max_length=500)
+
+
 class TokenOut(BaseModel):
     access_token: str
     token_type: str = "bearer"

@@ -4,3 +4,4 @@ sqlalchemy
 pymysql
 pyjwt
 httpx
+firebase-admin

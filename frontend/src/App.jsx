@@ -4,6 +4,8 @@ import Login from "./pages/Login.jsx";
 import Watchman from "./pages/watchman/Watchman.jsx";
 import Resident from "./pages/resident/Resident.jsx";
 import Admin from "./pages/admin/Admin.jsx";
+import Notify from "./Notify.jsx";
+import { forgetToken } from "./firebase";
 
 const SCREENS = { WATCHMAN: Watchman, RESIDENT: Resident, ADMIN: Admin };
 
@@ -38,7 +40,8 @@ export default function App() {
         </div>
         <button
           className="link"
-          onClick={() => {
+          onClick={async () => {
+            await forgetToken(); // stop alerts to this phone while we still have the login
             clearSession();
             setSession(null);
           }}
@@ -46,7 +49,10 @@ export default function App() {
           Log out
         </button>
       </header>
-      <main>{Screen ? <Screen /> : <p>Unknown role.</p>}</main>
+      <main>
+        {(session.role === "WATCHMAN" || session.role === "RESIDENT") && <Notify />}
+        {Screen ? <Screen /> : <p>Unknown role.</p>}
+      </main>
     </div>
   );
 }

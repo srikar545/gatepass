@@ -127,7 +127,8 @@ Tested in a real phone-sized browser: login, watchman request -> resident approv
 - Admin: add resident / watchman, disable user
 - Make it installable (manifest + service worker)
 
-### Phase 3: Push notifications
+### Phase 3: Push notifications (CODE DONE, needs your push key + service account to go live)
+Backend and frontend are built and tested with a fake sender. A real push needs the web push key and the service-account file (see README). Real delivery to a phone also needs HTTPS (Phase 4).
 - Create a Firebase project (free), add the web app
 - Frontend saves the device token -> `POST /me/fcm-token`
 - Backend `push.py` sends: on new visit -> resident phones of that flat; on decision -> watchman phone
@@ -171,7 +172,7 @@ Tested in a real phone-sized browser: login, watchman request -> resident approv
 - [ ] CORS locked to your domain (Phase 4)
 - [ ] Docs page turned off in production (`DOCS=off`, Phase 4)
 - [ ] DB backups (Phase 4)
-- [ ] Never commit `.env` or the Firebase key to git
+- [x] `.env` and Firebase service-account files are in `.gitignore` (still never paste them in chat)
 - [ ] Change the PIN policy: ask residents to avoid 1234 / 0000
 
 Known limits for now:

@@ -7,3 +7,6 @@ venv/
 node_modules/
 firebase-key.json
 dist/
+*service-account*.json
+*-firebase-adminsdk-*.json
+serviceAccount*.json

@@ -12,9 +12,11 @@ export function usePoll(fn, ms, deps = []) {
     run();
     const id = setInterval(run, ms);
     document.addEventListener("visibilitychange", run);
+    window.addEventListener("gatepass-push", run); // a push arrived while the app is open
     return () => {
       clearInterval(id);
       document.removeEventListener("visibilitychange", run);
+      window.removeEventListener("gatepass-push", run);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, deps);

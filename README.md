@@ -49,5 +49,28 @@ Run the backend with `--host 0.0.0.0`, open `http://<your-computer-ip>:5173` on 
 | `DOCS` | Set to `off` to hide `/docs` in production | on |
 | `TOKEN_HOURS` | How long a login lasts | 12 |
 | `VITE_API_URL` (frontend/.env) | Backend address the app talks to | same host, port 8000 |
+| `VITE_FIREBASE_VAPID_KEY` (frontend/.env) | Web push key from Firebase (starts with `B`). Without it the alerts banner stays hidden. | unset |
+| `FIREBASE_CREDENTIALS` | Path to the Firebase service-account JSON on the server. Without it push is simply off. | unset |
 
 Never commit a `.env` file or any key. `.gitignore` already skips them.
+
+## Push notifications (alerts when the app is closed)
+
+Residents get "Visitor at the gate" and the watchman gets "Flat 101: APPROVED" even with the app closed.
+Everything works without this (the app checks the server every few seconds while it is open).
+
+**One-time setup**
+1. Firebase console -> your project -> Project settings -> **Cloud Messaging** -> Web configuration -> **Generate key pair**.
+2. Create `frontend/.env` with one line: `VITE_FIREBASE_VAPID_KEY=<that key>` (see `frontend/.env.example`), then restart `npm run dev`.
+3. Firebase console -> Project settings -> **Service accounts** -> **Generate new private key**. Save the JSON **outside the repo** (it is a secret).
+4. Start the backend with the path set (Windows PowerShell):
+   ```
+   $env:FIREBASE_CREDENTIALS="C:\keys\gatepass-service-account.json"
+   uvicorn main:app --reload
+   ```
+5. In the app, log in as a resident or watchman and tap **Turn on alerts**, then Allow.
+
+Push only works on **HTTPS** (or `localhost` on the same computer). On a phone it needs the deployed HTTPS address.
+On iPhone, add the app to the Home Screen first (iOS 16.4+).
+
+Each person keeps one push address, from the last phone they turned alerts on. Logging out stops alerts to that phone.

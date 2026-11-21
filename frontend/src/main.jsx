@@ -5,8 +5,9 @@ import "./styles.css";
 
 createRoot(document.getElementById("root")).render(<App />);
 
-if ("serviceWorker" in navigator && import.meta.env.PROD) {
+// Registered in dev too, because push notifications need it.
+if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("/sw.js").catch(() => {});
+    navigator.serviceWorker.register("/firebase-messaging-sw.js").catch(() => {});
   });
 }
