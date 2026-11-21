@@ -37,6 +37,12 @@ class User(Base):
     is_active = Column(Boolean, default=True, nullable=False)
     fcm_token = Column(String(255), nullable=True)  # for push notifications later
 
+    flat = relationship("Flat")
+
+    @property
+    def flat_no(self):
+        return self.flat.flat_no if self.flat else None
+
 
 class VisitRequest(Base):
     __tablename__ = "visit_requests"
@@ -54,3 +60,7 @@ class VisitRequest(Base):
     checkout_at = Column(DateTime, nullable=True)
 
     flat = relationship("Flat")
+
+    @property
+    def flat_no(self):
+        return self.flat.flat_no if self.flat else None

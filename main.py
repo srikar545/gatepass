@@ -27,6 +27,21 @@ app = FastAPI(
     openapi_url="/openapi.json" if _docs else None,
 )
 
+# Which web addresses may call this API from a browser (comma separated).
+# Dev default is the Vite dev server. In production set CORS_ORIGINS to your real domain.
+from fastapi.middleware.cors import CORSMiddleware
+_origins = [
+    o.strip()
+    for o in os.getenv("CORS_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173").split(",")
+    if o.strip()
+]
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=_origins,
+    allow_methods=["GET", "POST", "PATCH"],
+    allow_headers=["Authorization", "Content-Type"],
+)
+
 EXPIRY_MINUTES = 2
 
 
@@ -154,6 +169,32 @@ def create_visit(
     db.refresh(visit)
     # TODO: send FCM push to the flat's residents here
     return visit
+
+
+@app.get("/flats", response_model=List[str])
+def list_flats(
+    db: Session = Depends(get_db),
+    _: User = Depends(current_user),
+):
+    """Flat numbers for the watchman's dropdown (any logged-in user)."""
+    return [f.flat_no for f in db.query(Flat).order_by(Flat.flat_no).all()]
+
+
+@app.get("/visits/active", response_model=List[VisitOut])
+def active_visits(
+    db: Session = Depends(get_db),
+    _: User = Depends(require_role(Role.WATCHMAN)),
+):
+    """Watchman home: guests waiting for a reply, approved, or currently inside."""
+    expire_old(db)
+    return (
+        db.query(VisitRequest)
+        .filter(VisitRequest.status.in_(
+            [VisitStatus.PENDING, VisitStatus.APPROVED, VisitStatus.CHECKED_IN]
+        ))
+        .order_by(VisitRequest.created_at.desc())
+        .all()
+    )
 
 
 @app.get("/visits/pending", response_model=List[VisitOut])

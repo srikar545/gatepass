@@ -45,18 +45,20 @@ gatepass/
 ├── frontend/              # React PWA (Phase 2)
 │   ├── public/
 │   │   ├── manifest.json            # makes it installable
-│   │   └── firebase-messaging-sw.js # receives push in background
+│   │   ├── sw.js                    # service worker (offline shell)
+│   │   └── icon-192.png, icon-512.png
 │   └── src/
-│       ├── api.js                   # fetch wrapper (adds token)
-│       ├── auth.js                  # login state
+│       ├── api.js                   # fetch wrapper (adds token, handles 401)
+│       ├── hooks.js, time.js, ui.jsx
 │       ├── pages/
 │       │   ├── Login.jsx
-│       │   ├── watchman/NewVisit.jsx
-│       │   ├── watchman/VisitStatus.jsx
-│       │   ├── resident/Pending.jsx
-│       │   ├── resident/History.jsx
-│       │   └── admin/Users.jsx
-│       └── App.jsx                  # routes by role
+│       │   ├── watchman/Watchman.jsx   # home list + check in/out
+│       │   ├── watchman/NewVisit.jsx   # form
+│       │   ├── watchman/Waiting.jsx    # ALLOW / DENY screen
+│       │   ├── resident/Resident.jsx   # requests + history
+│       │   └── admin/Admin.jsx         # people, add person, flats, log
+│       └── App.jsx                  # shows the screen for the user's role
+│   (Phase 3 adds firebase-messaging-sw.js in public/)
 │
 └── deploy/
     ├── Caddyfile          # HTTPS reverse proxy
@@ -95,6 +97,8 @@ PENDING -> APPROVED -> CHECKED_IN -> CHECKED_OUT
 | GET /admin/users | admin | built |
 | PATCH /admin/users/{id}/disable | admin | built |
 | POST /visits | watchman | built |
+| GET /flats | any logged-in user | built |
+| GET /visits/active | watchman | built |
 | GET /visits/pending | resident (own flat) | built |
 | GET /visits/history | resident / admin | built |
 | GET /visits/{id} | watchman / resident (own flat) / admin | built |
@@ -115,7 +119,8 @@ PENDING -> APPROVED -> CHECKED_IN -> CHECKED_OUT
 - Check-in / check-out
 - Tested: 28 checks including wrong-role and wrong-flat attacks
 
-### Phase 2: Frontend PWA
+### Phase 2: Frontend PWA (DONE)
+Tested in a real phone-sized browser: login, watchman request -> resident approve -> ALLOW -> check in/out, reject, history, admin add/disable, disabled user thrown out.
 - Login screen
 - Watchman: New Visit form -> Waiting screen (polls `GET /visits/{id}` every 3 s) -> big green ALLOW or red DENY -> Check in / Check out buttons
 - Resident: Pending list (polls every 5 s) with Approve / Reject buttons, plus History
@@ -180,7 +185,7 @@ Known limits for now:
 | Phase | Time |
 |---|---|
 | 1 Backend | done |
-| 2 Frontend | 5-7 days |
+| 2 Frontend | done |
 | 3 Push | 2-3 days |
 | 4 Deploy | 1-2 days |
 | 5 Extras | as needed |

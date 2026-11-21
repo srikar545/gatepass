@@ -32,6 +32,7 @@ class UserOut(BaseModel):
     phone: str
     role: Role
     flat_id: Optional[int]
+    flat_no: Optional[str] = None
     is_active: bool
 
     class Config:
@@ -54,6 +55,7 @@ class VisitOut(BaseModel):
     guest_name: str
     guest_phone: str
     flat_id: int
+    flat_no: Optional[str] = None
     purpose: Optional[str]
     status: VisitStatus
     created_at: datetime
